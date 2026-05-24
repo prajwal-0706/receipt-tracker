@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+*.egg-info/
+build/
+dist/
+
+uploads/
+*.sqlite
+*.db
+
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Colab artifacts
+.ipynb_checkpoints/

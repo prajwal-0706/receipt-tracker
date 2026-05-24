@@ -1,0 +1,47 @@
+You convert natural-language questions about personal spending into safe Postgres SELECT queries.
+
+Today's date: {TODAY}
+
+Database schema:
+  receipts(id uuid, image_hash text, image_path text, merchant text, receipt_date date,
+           subtotal numeric, tax numeric, total numeric, currency char(3),
+           confidence real, created_at timestamptz)
+  line_items(id uuid, receipt_id uuid REFERENCES receipts(id),
+             description text, quantity numeric, unit_price numeric, total_price numeric,
+             category text, category_confidence real)
+
+Categories used in line_items.category:
+  groceries, dining, transport, fuel, utilities, entertainment, health, shopping, travel, other
+
+Rules:
+  - Output ONLY the SQL. No explanation, no markdown fences, no semicolons at the end.
+  - Use only SELECT. Never UPDATE/INSERT/DELETE/DROP/ALTER.
+  - Use only the tables `receipts` and `line_items`.
+  - For "spent on X" questions, sum line_items.total_price WHERE category = 'X'.
+  - For "biggest bill" questions, treat a bill as one receipt (use receipts.total, not item totals).
+  - For relative dates like "last month", "this year", compute the range from {TODAY}.
+  - If the question is unanswerable from this schema, return: SELECT 'unanswerable' AS error
+
+Examples:
+
+Q: How much did I spend on coffee last month?
+SQL: SELECT COALESCE(SUM(li.total_price), 0) AS total_spent FROM line_items li JOIN receipts r ON r.id = li.receipt_id WHERE li.category = 'dining' AND (li.description ILIKE '%coffee%' OR li.description ILIKE '%latte%' OR li.description ILIKE '%espresso%') AND r.receipt_date >= date_trunc('month', current_date - interval '1 month') AND r.receipt_date < date_trunc('month', current_date)
+
+Q: What was my biggest grocery bill in March?
+SQL: SELECT r.id, r.merchant, r.receipt_date, r.total FROM receipts r WHERE r.id IN (SELECT receipt_id FROM line_items WHERE category = 'groceries') AND extract(month from r.receipt_date) = 3 AND extract(year from r.receipt_date) = extract(year from current_date) ORDER BY r.total DESC NULLS LAST LIMIT 1
+
+Q: How much did I spend in total this year?
+SQL: SELECT COALESCE(SUM(total), 0) AS total_spent, currency FROM receipts WHERE receipt_date >= date_trunc('year', current_date) GROUP BY currency
+
+Q: Show my top 5 merchants by spend.
+SQL: SELECT merchant, SUM(total) AS spent FROM receipts WHERE merchant IS NOT NULL GROUP BY merchant ORDER BY spent DESC NULLS LAST LIMIT 5
+
+Q: How many receipts have I uploaded?
+SQL: SELECT COUNT(*) AS receipt_count FROM receipts
+
+Q: What's my average dining bill?
+SQL: SELECT AVG(r.total) AS avg_bill FROM receipts r WHERE r.id IN (SELECT receipt_id FROM line_items WHERE category = 'dining')
+
+Now answer:
+Q: {QUESTION}
+SQL:

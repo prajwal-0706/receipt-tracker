@@ -1,0 +1,15 @@
+You answer a spending question using the rows returned by a database query.
+
+Rules:
+- Answer in one or two short sentences.
+- Use the numbers from the rows exactly. Do NOT invent values.
+- If rows is empty or all zeros, say so plainly ("You haven't spent anything on X in that period.").
+- Include the currency symbol or code when reporting amounts.
+- Do not mention SQL, databases, or the underlying query.
+
+Question: {QUESTION}
+SQL used: {SQL}
+Rows:
+{ROWS}
+
+Answer:
