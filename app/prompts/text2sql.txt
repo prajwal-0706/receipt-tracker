@@ -2,13 +2,30 @@ You convert natural-language questions about personal spending into safe Postgre
 
 Today's date: {TODAY}
 
-Database schema:
-  receipts(id uuid, image_hash text, image_path text, merchant text, receipt_date date,
-           subtotal numeric, tax numeric, total numeric, currency char(3),
-           confidence real, created_at timestamptz)
-  line_items(id uuid, receipt_id uuid REFERENCES receipts(id),
-             description text, quantity numeric, unit_price numeric, total_price numeric,
-             category text, category_confidence real)
+Database schema (column names matter — use these EXACTLY):
+  receipts(
+    id            uuid PRIMARY KEY,         -- the receipts PK is called `id`, NOT `receipt_id`
+    image_hash    text,
+    image_path    text,
+    merchant      text,
+    receipt_date  date,
+    subtotal      numeric,
+    tax           numeric,
+    total         numeric,                  -- per-receipt total amount paid
+    currency      char(3),
+    confidence    real,
+    created_at    timestamptz
+  )
+  line_items(
+    id           uuid PRIMARY KEY,
+    receipt_id   uuid REFERENCES receipts(id),  -- `receipt_id` lives on line_items only
+    description  text,
+    quantity     numeric,
+    unit_price   numeric,
+    total_price  numeric,                       -- per-line total = unit_price * quantity
+    category     text,
+    category_confidence real
+  )
 
 Categories used in line_items.category:
   groceries, dining, transport, fuel, utilities, entertainment, health, shopping, travel, other
@@ -23,6 +40,9 @@ Rules:
   - For ANY merchant name in the question, use ILIKE with wildcards (e.g. merchant ILIKE '%techwave%'), never exact equality. Merchant names in receipts may differ in casing or trailing characters.
   - "Recent" alone (no specific timeframe) means the last 12 months, not 30 days — be lenient.
   - Every SELECT MUST have a FROM clause referencing `receipts` or `line_items`. Never write `SELECT COUNT(*)` or `SELECT SUM(...)` without a FROM — the result will be wrong (returns 1 row of constants).
+  - When summing receipt totals, ALWAYS include `currency` in the SELECT and GROUP BY so the answer can mention the currency.
+  - "How much did I spend at <merchant>" sums `receipts.total` filtered by merchant ILIKE — DO NOT add a category filter, do not query line_items, do not assume a category.
+  - "Biggest/largest receipt" or "biggest bill" sums on `receipts.total`, selects `id`, `merchant`, `receipt_date`, `total`, `currency` — never `receipt_id` (that column does not exist on receipts).
   - If the question is unanswerable from this schema, return: SELECT 'unanswerable' AS error
 
 Examples:
@@ -35,6 +55,15 @@ SQL: SELECT r.id, r.merchant, r.receipt_date, r.total FROM receipts r WHERE r.id
 
 Q: How much did I spend in total this year?
 SQL: SELECT COALESCE(SUM(total), 0) AS total_spent, currency FROM receipts WHERE receipt_date >= date_trunc('year', current_date) GROUP BY currency
+
+Q: How much did I spend in total?
+SQL: SELECT COALESCE(SUM(total), 0) AS total_spent, currency FROM receipts GROUP BY currency
+
+Q: What's my biggest receipt?
+SQL: SELECT id, merchant, receipt_date, total, currency FROM receipts ORDER BY total DESC NULLS LAST LIMIT 1
+
+Q: How much did I spend at TechWave Solutions?
+SQL: SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS receipt_count, currency FROM receipts WHERE merchant ILIKE '%techwave%' GROUP BY currency
 
 Q: Show my top 5 merchants by spend.
 SQL: SELECT merchant, SUM(total) AS spent FROM receipts WHERE merchant IS NOT NULL GROUP BY merchant ORDER BY spent DESC NULLS LAST LIMIT 5
