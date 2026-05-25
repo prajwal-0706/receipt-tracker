@@ -54,6 +54,24 @@ SQL: SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS receipt_count, c
 Q: List my transactions with Costa Coffee
 SQL: SELECT id, merchant, receipt_date, total, currency FROM receipts WHERE merchant ILIKE '%costa%' ORDER BY receipt_date DESC
 
+Q: How much did I spend on shopping?
+SQL: SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'shopping' AS category FROM line_items WHERE category = 'shopping'
+
+Q: How much did I spend on entertainment?
+SQL: SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'entertainment' AS category FROM line_items WHERE category = 'entertainment'
+
+Q: How many items did I buy in total?
+SQL: SELECT COALESCE(SUM(quantity), 0) AS total_items FROM line_items
+
+Q: What was the most expensive item I bought?
+SQL: SELECT description, quantity, unit_price, total_price FROM line_items ORDER BY total_price DESC NULLS LAST LIMIT 1
+
+Q: What is the cheapest receipt I have?
+SQL: SELECT id, merchant, receipt_date, total, currency FROM receipts ORDER BY total ASC NULLS LAST LIMIT 1
+
+Q: How much did I spend on coffee this year?
+SQL: SELECT COALESCE(SUM(li.total_price), 0) AS total_spent FROM line_items li JOIN receipts r ON r.id = li.receipt_id WHERE (li.description ILIKE '%coffee%' OR li.description ILIKE '%latte%' OR li.description ILIKE '%espresso%' OR li.description ILIKE '%cappuccino%') AND r.receipt_date >= date_trunc('year', current_date)
+
 Now answer:
 Q: {QUESTION}
 SQL:

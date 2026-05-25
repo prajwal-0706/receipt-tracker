@@ -24,6 +24,9 @@ import httpx
 ROOT = Path(__file__).resolve().parent.parent
 
 
+FIELD_MAP = {"date": "receipt_date", "total": "total", "merchant": "merchant", "currency": "currency"}
+
+
 def eval_extraction(api_url: str, labels_path: Path) -> dict:
     if not labels_path.exists():
         print(f"!! {labels_path} not found — skipping extraction eval")
@@ -41,12 +44,20 @@ def eval_extraction(api_url: str, labels_path: Path) -> dict:
         expected = entry["expected"]
         with image_path.open("rb") as fh:
             resp = httpx.post(f"{api_url}/receipts", files={"files": (image_path.name, fh)}, timeout=120)
-        if resp.status_code != 201 or not resp.json().get("receipts"):
+        if resp.status_code != 201:
             failures.append({"image": entry["image"], "error": resp.text[:200]})
             continue
-        got = resp.json()["receipts"][0]
+        body = resp.json()
+        if not body.get("receipts") and body.get("skipped_duplicates"):
+            failures.append({"image": entry["image"], "error": "duplicate — clear DB before extraction eval"})
+            continue
+        if not body.get("receipts"):
+            failures.append({"image": entry["image"], "error": resp.text[:200]})
+            continue
+        got = body["receipts"][0]
         for f in fields:
-            if _norm(got.get(f)) == _norm(expected.get(f)):
+            api_key = FIELD_MAP[f]
+            if _eq(got.get(api_key), expected.get(f)):
                 correct[f] += 1
         prec, rec = _item_overlap(got.get("line_items", []), expected.get("items", []))
         item_precision_sum += prec
@@ -61,6 +72,18 @@ def eval_extraction(api_url: str, labels_path: Path) -> dict:
     }
 
 
+def _eq(api_val, expected_val) -> bool:
+    """Field-aware equality: numeric tolerance, case-insensitive strings."""
+    if api_val is None or expected_val is None:
+        return api_val == expected_val
+    # Try numeric comparison
+    try:
+        return abs(float(api_val) - float(expected_val)) < 0.01
+    except (TypeError, ValueError):
+        pass
+    return str(api_val).strip().lower() == str(expected_val).strip().lower()
+
+
 def eval_queries(api_url: str, queries_path: Path) -> dict:
     if not queries_path.exists():
         print(f"!! {queries_path} not found — skipping query eval")
@@ -73,15 +96,21 @@ def eval_queries(api_url: str, queries_path: Path) -> dict:
         if resp.status_code != 200:
             details.append({"q": q["q"], "ok": False, "error": resp.text[:200]})
             continue
-        answer = resp.json().get("answer", "")
-        ok = True
-        for needle in q.get("expected_contains", []):
-            if str(needle).lower() not in answer.lower():
-                ok = False
-                break
+        body = resp.json()
+        answer = body.get("answer", "")
+        sql = body.get("sql", "")
+        # Normalize: strip commas/spaces from numbers in the answer so "$4,044.60" matches needle "4044"
+        normalized = answer.lower().replace(",", "")
+        needles = q.get("expected_contains", [])
+        # Match mode: "any" passes if ANY needle present; default "all" requires all needles
+        mode = q.get("match", "all")
+        if mode == "any":
+            ok = any(str(n).lower() in normalized for n in needles)
+        else:
+            ok = all(str(n).lower() in normalized for n in needles)
         if ok:
             passed += 1
-        details.append({"q": q["q"], "answer": answer, "ok": ok})
+        details.append({"q": q["q"], "answer": answer, "sql": sql, "ok": ok})
 
     return {
         "total_queries": len(queries),
