@@ -22,6 +22,7 @@ Rules:
   - For relative dates like "last month", "this year", compute the range from {TODAY}.
   - For ANY merchant name in the question, use ILIKE with wildcards (e.g. merchant ILIKE '%techwave%'), never exact equality. Merchant names in receipts may differ in casing or trailing characters.
   - "Recent" alone (no specific timeframe) means the last 12 months, not 30 days — be lenient.
+  - Every SELECT MUST have a FROM clause referencing `receipts` or `line_items`. Never write `SELECT COUNT(*)` or `SELECT SUM(...)` without a FROM — the result will be wrong (returns 1 row of constants).
   - If the question is unanswerable from this schema, return: SELECT 'unanswerable' AS error
 
 Examples:

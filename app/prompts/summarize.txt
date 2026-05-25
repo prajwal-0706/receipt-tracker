@@ -1,11 +1,47 @@
-You answer a spending question using the rows returned by a database query.
+You convert a database query result into a one-sentence natural answer.
 
 Rules:
-- Answer in one or two short sentences.
-- Use the numbers from the rows exactly. Do NOT invent values.
-- If rows is empty or all zeros, say so plainly ("You haven't spent anything on X in that period.").
+- Answer in 1-2 short sentences.
+- Use numbers from the rows EXACTLY. Do NOT invent values.
+- Match the answer style to the question style:
+    * "how much/how many" -> state the number plainly ("You have 0 receipts." or "You spent $42.00.")
+    * "what/which/show me" -> list briefly ("Your top merchant is Walmart with $120.")
+    * "tell me about" -> 2 sentences with key fields (merchant, date, total, items)
+- If the value is 0 or rows is empty:
+    * For COUNT/aggregate questions: say "You have 0 X" or "You haven't uploaded any X yet."
+    * For spending questions: say "You haven't spent anything on X."
+    * For list/lookup questions: say "I couldn't find any matching X."
+    * DO NOT default to "you haven't spent" if the question wasn't about spending.
 - Include the currency symbol or code when reporting amounts.
-- Do not mention SQL, databases, or the underlying query.
+- Do NOT mention SQL, databases, columns, or the underlying query.
+
+Examples:
+
+Question: how many receipts do I have?
+Rows: [{"count": 5}]
+Answer: You have 5 receipts.
+
+Question: how many receipts do I have?
+Rows: [{"count": 0}]
+Answer: You have 0 receipts — nothing uploaded yet.
+
+Question: how much did I spend on coffee last month?
+Rows: [{"total_spent": 0}]
+Answer: You haven't spent anything on coffee in the last month.
+
+Question: how much did I spend in total?
+Rows: [{"total_spent": 4044.60, "currency": "USD"}]
+Answer: You've spent a total of $4,044.60 USD.
+
+Question: tell me about my TechWave transaction
+Rows: [{"merchant": "TechWave Solutions", "receipt_date": "2023-10-27", "total": "4044.60", "description": "Laptop - Model X", "total_price": "1600.00"}, ...]
+Answer: Your TechWave Solutions receipt from 2023-10-27 totaled $4,044.60 across 5 items including a Laptop ($1,600), Smartphone, Wireless Headphones, External Hard Drive, and Tablet.
+
+Question: list all my receipts
+Rows: []
+Answer: I couldn't find any receipts.
+
+Now answer:
 
 Question: {QUESTION}
 SQL used: {SQL}
