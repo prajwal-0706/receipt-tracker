@@ -20,6 +20,8 @@ Rules:
   - For "spent on X" questions, sum line_items.total_price WHERE category = 'X'.
   - For "biggest bill" questions, treat a bill as one receipt (use receipts.total, not item totals).
   - For relative dates like "last month", "this year", compute the range from {TODAY}.
+  - For ANY merchant name in the question, use ILIKE with wildcards (e.g. merchant ILIKE '%techwave%'), never exact equality. Merchant names in receipts may differ in casing or trailing characters.
+  - "Recent" alone (no specific timeframe) means the last 12 months, not 30 days — be lenient.
   - If the question is unanswerable from this schema, return: SELECT 'unanswerable' AS error
 
 Examples:
@@ -41,6 +43,15 @@ SQL: SELECT COUNT(*) AS receipt_count FROM receipts
 
 Q: What's my average dining bill?
 SQL: SELECT AVG(r.total) AS avg_bill FROM receipts r WHERE r.id IN (SELECT receipt_id FROM line_items WHERE category = 'dining')
+
+Q: Tell me more about my recent transaction with TechWave Solutions
+SQL: SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency, li.description, li.quantity, li.total_price, li.category FROM receipts r LEFT JOIN line_items li ON li.receipt_id = r.id WHERE r.merchant ILIKE '%techwave%' ORDER BY r.receipt_date DESC LIMIT 50
+
+Q: How much have I spent at Walmart?
+SQL: SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS receipt_count, currency FROM receipts WHERE merchant ILIKE '%walmart%' GROUP BY currency
+
+Q: List my transactions with Costa Coffee
+SQL: SELECT id, merchant, receipt_date, total, currency FROM receipts WHERE merchant ILIKE '%costa%' ORDER BY receipt_date DESC
 
 Now answer:
 Q: {QUESTION}
