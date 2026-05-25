@@ -54,11 +54,16 @@ def answer_question(question: str, db: Session, slm: SLMClient) -> QueryResult:
 
 
 _FENCE_RE = re.compile(r"^```(?:sql)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
+_SQL_LABEL_RE = re.compile(r"^\s*SQL\s*:\s*", re.IGNORECASE)
 
 
 def _strip_code_fences(sql: str) -> str:
-    m = _FENCE_RE.match(sql.strip())
-    return m.group(1).strip() if m else sql.strip().rstrip(";")
+    sql = sql.strip()
+    m = _FENCE_RE.match(sql)
+    if m:
+        sql = m.group(1).strip()
+    sql = _SQL_LABEL_RE.sub("", sql)  # drop any "SQL:" prefix the model echoed from the prompt
+    return sql.rstrip(";").strip()
 
 
 def _is_safe_select(sql: str) -> str | None:
