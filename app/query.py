@@ -53,17 +53,17 @@ def answer_question(question: str, db: Session, slm: SLMClient) -> QueryResult:
     return QueryResult(question, sql, _serialize_rows(rows), answer)
 
 
-_FENCE_RE = re.compile(r"^```(?:sql)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
-_SQL_LABEL_RE = re.compile(r"^\s*SQL\s*:\s*", re.IGNORECASE)
-
-
 def _strip_code_fences(sql: str) -> str:
+    """Normalize a raw SLM SQL response: drop "SQL:" labels, ``` fences, language tags, trailing semicolons."""
     sql = sql.strip()
-    m = _FENCE_RE.match(sql)
-    if m:
-        sql = m.group(1).strip()
-    sql = _SQL_LABEL_RE.sub("", sql)  # drop any "SQL:" prefix the model echoed from the prompt
-    return sql.rstrip(";").strip()
+    # Drop "SQL:" prefix if the model echoed the prompt label
+    sql = re.sub(r"^\s*SQL\s*:\s*", "", sql, flags=re.IGNORECASE)
+    # Strip ALL leading/trailing backticks (handles ```, ````sql, or weird counts)
+    sql = sql.strip("`").strip()
+    # If a language tag survived (e.g. "sql\nSELECT ..."), drop it
+    sql = re.sub(r"^(sql|postgres(?:ql)?)\s*\n", "", sql, flags=re.IGNORECASE)
+    # Final cleanup
+    return sql.strip().rstrip(";").strip()
 
 
 def _is_safe_select(sql: str) -> str | None:

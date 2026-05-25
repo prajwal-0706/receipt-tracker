@@ -1,0 +1,18 @@
+[
+  {
+    "image": "samples/techwave-receipt.webp",
+    "expected": {
+      "merchant": "TechWave Solutions",
+      "date": "2023-10-27",
+      "total": 4044.60,
+      "currency": "USD",
+      "items": [
+        {"description": "Laptop - Model X"},
+        {"description": "Smartphone - Model Y"},
+        {"description": "Wireless Headphones"},
+        {"description": "External Hard Drive - 2TB"},
+        {"description": "Tablet - Model Z"}
+      ]
+    }
+  }
+]

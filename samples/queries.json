@@ -1,0 +1,102 @@
+[
+  {
+    "q": "how many receipts do I have?",
+    "expected_contains": ["1"],
+    "tests": "basic COUNT(*)"
+  },
+  {
+    "q": "how much did I spend in total?",
+    "expected_contains": ["4044", "USD"],
+    "tests": "SUM with currency grouping"
+  },
+  {
+    "q": "how much did I spend at TechWave Solutions?",
+    "expected_contains": ["4044", "TechWave"],
+    "tests": "merchant ILIKE filter"
+  },
+  {
+    "q": "what's my biggest receipt?",
+    "expected_contains": ["TechWave", "4044"],
+    "tests": "ORDER BY total DESC LIMIT 1"
+  },
+  {
+    "q": "show me my top merchants by spend",
+    "expected_contains": ["TechWave"],
+    "tests": "GROUP BY merchant ORDER BY SUM(total)"
+  },
+  {
+    "q": "how much did I spend on shopping?",
+    "expected_contains": ["3380", "shopping"],
+    "tests": "category filter, sum of line_items"
+  },
+  {
+    "q": "how much did I spend on entertainment?",
+    "expected_contains": ["300", "entertainment"],
+    "tests": "category filter (small subset)"
+  },
+  {
+    "q": "how many items did I buy in total?",
+    "expected_contains": ["12"],
+    "tests": "SUM(quantity) across line_items"
+  },
+  {
+    "q": "what's my average receipt total?",
+    "expected_contains": ["4044"],
+    "tests": "AVG(total)"
+  },
+  {
+    "q": "what currencies are my receipts in?",
+    "expected_contains": ["USD"],
+    "tests": "DISTINCT currency"
+  },
+  {
+    "q": "how much did I spend in 2023?",
+    "expected_contains": ["4044"],
+    "tests": "year-based date filter"
+  },
+  {
+    "q": "list all my receipts",
+    "expected_contains": ["TechWave"],
+    "tests": "SELECT * with ordering"
+  },
+  {
+    "q": "tell me about my transactions with TechWave",
+    "expected_contains": ["TechWave", "Laptop"],
+    "tests": "JOIN receipts + line_items, ILIKE merchant"
+  },
+  {
+    "q": "how much have I paid in tax?",
+    "expected_contains": ["264"],
+    "tests": "SUM(tax)"
+  },
+  {
+    "q": "what was the most expensive item I bought?",
+    "expected_contains": ["Laptop", "1600"],
+    "tests": "ORDER BY line_items.total_price DESC LIMIT 1"
+  },
+  {
+    "q": "did I buy any laptops?",
+    "expected_contains": ["Laptop", "2"],
+    "tests": "ILIKE description filter"
+  },
+  {
+    "q": "how much did I spend in October 2023?",
+    "expected_contains": ["4044"],
+    "tests": "EXTRACT(month) + EXTRACT(year)"
+  },
+  {
+    "q": "what was my biggest grocery bill last month?",
+    "expected_contains": ["0", "haven't"],
+    "tests": "should return zero (no grocery receipts) — tests honest 'no data' answer"
+  },
+  {
+    "q": "how much did I spend on coffee this year?",
+    "expected_contains": ["0", "haven't"],
+    "tests": "another zero-result honest answer"
+  },
+  {
+    "q": "what's the weather today?",
+    "expected_contains": ["unanswerable", "can't", "don't"],
+    "tests": "out-of-scope question rejection"
+  }
+]
