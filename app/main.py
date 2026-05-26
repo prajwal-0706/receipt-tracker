@@ -95,6 +95,24 @@ async def upload_receipts(
 
             extracted: ExtractedReceipt = result.receipt or ExtractedReceipt()
 
+            # Reject if the model couldn't extract anything meaningful — the image
+            # isn't a receipt, or it's too damaged to read.
+            nothing_extracted = (
+                extracted.merchant is None
+                and extracted.total is None
+                and not extracted.line_items
+            )
+            if result.confidence < 0.2 or nothing_extracted:
+                image_path.unlink(missing_ok=True)
+                failed.append({
+                    "filename": upload.filename,
+                    "error": (
+                        f"could not extract receipt data (confidence={result.confidence:.2f}). "
+                        f"image may not be a receipt or is unreadable."
+                    ),
+                })
+                continue
+
             receipt = Receipt(
                 id=uuid.uuid4(),
                 image_hash=image_hash,
