@@ -1,0 +1,647 @@
+
+{
+  "question": "how many transactions i have in total? and explain them",
+  "answer": "I couldn't run that query safely (parse error: Invalid expression / Unexpected token. Line 1, Col: 3.\n  ``\u001b[4m`\u001b[0m\nSELECT COUNT(*) AS transaction_count, merchant, receipt_date, total, currency \nFROM receipts \nWHERE).",
+  "sql": "```\nSELECT COUNT(*) AS transaction_count, merchant, receipt_date, total, currency \nFROM receipts \nWHERE merchant IS NOT NULL \nGROUP BY merchant, receipt_date, total, currency \nORDER BY receipt_date DESC\n```",
+  "rows": null
+}
+
+{
+  "question": "tell me more about my recent transaction with TechWave Solutions",
+  "answer": "I couldn't run that query safely (parse error: Invalid expression / Unexpected token. Line 1, Col: 4.\n  SQL\u001b[4m:\u001b[0m SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency, li.description, li.quantity, li.total).",
+  "sql": "SQL: SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency, li.description, li.quantity, li.total_price, li.category FROM receipts r LEFT JOIN line_items li ON li.receipt_id = r.id WHERE r.merchant ILIKE '%TechWave%' ORDER BY r.receipt_date DESC LIMIT 50",
+  "rows": null
+}
+
+{
+  "question": "how many transactions do I have in total? and explain them",
+  "answer": "You have 1 transaction in total.",
+  "sql": "SELECT COUNT(*) AS transaction_count",
+  "rows": [
+    {
+      "transaction_count": "1"
+    }
+  ]
+}
+
+
+command: python scripts/evaluate.py --suite all --api http://34.135.115.1:8000
+
+{
+  "extraction": {
+    "total_receipts": 1,
+    "per_field_accuracy": {
+      "merchant": 1.0,
+      "date": 0.0,
+      "total": 0.0,
+      "currency": 1.0
+    },
+    "item_precision_avg": 1.0,
+    "item_recall_avg": 1.0,
+    "failures": []
+  },
+  "queries": {
+    "total_queries": 20,
+    "passed": 7,
+    "pass_rate": 0.35,
+    "details": [
+      {
+        "q": "how many receipts do I have?",
+        "answer": "You have 1 receipt.",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in total?",
+        "answer": "You've spent a total of $4,044.60.",
+        "ok": false
+      },
+      {
+        "q": "how much did I spend at TechWave Solutions?",
+        "answer": "You spent $4,044.60 USD at TechWave Solutions. This was one receipt.",
+        "ok": false
+      },
+      {
+        "q": "what's my biggest receipt?",
+        "answer": "Your biggest receipt was from TechWave Solutions on 2023-10-27 totaling $4,044.60.",
+        "ok": false
+      },
+      {
+        "q": "show me my top merchants by spend",
+        "answer": "Your top merchant is TechWave Solutions with $4,044.60 spent.",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on shopping?",
+        "answer": "The generated query failed against the database (ProgrammingError).",
+        "ok": false
+      },
+      {
+        "q": "how much did I spend on entertainment?",
+        "answer": "The generated query failed against the database (ProgrammingError).",
+        "ok": false
+      },
+      {
+        "q": "how many items did I buy in total?",
+        "answer": "You bought a total of 1 item.",
+        "ok": false
+      },
+      {
+        "q": "what's my average receipt total?",
+        "answer": "You haven't spent anything on receipts this year.",
+        "ok": false
+      },
+      {
+        "q": "what currencies are my receipts in?",
+        "answer": "You have receipts in USD.",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in 2023?",
+        "answer": "You spent $4,044.60 USD in 2023.",
+        "ok": false
+      },
+      {
+        "q": "list all my receipts",
+        "answer": "You have a receipt from TechWave Solutions dated 2023-10-27 totaling $4,044.60 USD.",
+        "ok": true
+      },
+      {
+        "q": "tell me about my transactions with TechWave",
+        "answer": "Your transaction with TechWave Solutions on 2023-10-27 totaled $4,044.60 USD. This includes a Laptop worth $1,600.",
+        "ok": true
+      },
+      {
+        "q": "how much have I paid in tax?",
+        "answer": "You've paid a total of $264.60 in tax.",
+        "ok": true
+      },
+      {
+        "q": "what was the most expensive item I bought?",
+        "answer": "The generated query failed against the database (ProgrammingError).",
+        "ok": false
+      },
+      {
+        "q": "did I buy any laptops?",
+        "answer": "You bought a laptop from TechWave Solutions on 2023-10-27 for $4,044.60 USD.",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in October 2023?",
+        "answer": "You spent $4,044.60 in October 2023.",
+        "ok": false
+      },
+      {
+        "q": "what was my biggest grocery bill last month?",
+        "answer": "You haven't uploaded any grocery receipts for the last month.",
+        "ok": false
+      },
+      {
+        "q": "how much did I spend on coffee this year?",
+        "answer": "The generated query failed against the database (ProgrammingError).",
+        "ok": false
+      },
+      {
+        "q": "what's the weather today?",
+        "answer": "The query returned an error: \"unanswerable\". Today's weather information is unavailable.",
+        "ok": false
+      }
+    ]
+  }
+}
+
+same command with improved accuracy:
+{
+  "extraction": {
+    "total_receipts": 1,
+    "per_field_accuracy": {
+      "merchant": 1.0,
+      "date": 1.0,
+      "total": 1.0,
+      "currency": 1.0
+    },
+    "item_precision_avg": 1.0,
+    "item_recall_avg": 1.0,
+    "failures": []
+  },
+  "queries": {
+    "total_queries": 20,
+    "passed": 17,
+    "pass_rate": 0.85,
+    "details": [
+      {
+        "q": "how many receipts do I have?",
+        "answer": "You have 1 receipt.",
+        "sql": "SELECT COUNT(*) AS receipt_count FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in total?",
+        "answer": "You've spent a total of $4,044.60.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent FROM receipts",
+        "ok": false
+      },
+      {
+        "q": "how much did I spend at TechWave Solutions?",
+        "answer": "You haven't spent anything at TechWave Solutions.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent FROM line_items WHERE category = 'dining' AND receipt_id IN (SELECT id FROM receipts WHERE merchant ILIKE '%TechWave%')",
+        "ok": false
+      },
+      {
+        "q": "what's my biggest receipt?",
+        "answer": "The generated query failed against the database (ProgrammingError).",
+        "sql": "SELECT receipt_id, merchant, receipt_date, total, currency FROM receipts ORDER BY total DESC NULLS LAST LIMIT 1",
+        "ok": false
+      },
+      {
+        "q": "show me my top merchants by spend",
+        "answer": "Your top merchant is TechWave Solutions with $4,044.60 spent.",
+        "sql": "SELECT merchant, SUM(total) AS spent FROM receipts WHERE merchant IS NOT NULL GROUP BY merchant ORDER BY spent DESC NULLS LAST",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on shopping?",
+        "answer": "You spent $3,480.00 on shopping.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent FROM line_items WHERE category ='shopping'",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on entertainment?",
+        "answer": "You spent $300.00 on entertainment.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'entertainment' AS category FROM line_items WHERE category = 'entertainment'",
+        "ok": true
+      },
+      {
+        "q": "how many items did I buy in total?",
+        "answer": "You bought a total of 12 items.",
+        "sql": "SELECT COALESCE(SUM(quantity), 0) AS total_items FROM line_items",
+        "ok": true
+      },
+      {
+        "q": "what's my average receipt total?",
+        "answer": "Your average receipt total is $4,044.60.",
+        "sql": "SELECT AVG(total) AS avg_total FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "what currencies are my receipts in?",
+        "answer": "You have receipts in USD.",
+        "sql": "SELECT DISTINCT currency FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in 2023?",
+        "answer": "You spent $4,044.60 in 2023.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent FROM receipts WHERE receipt_date >= DATE '2023-01-01' AND receipt_date < DATE '2024-01-01' GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "list all my receipts",
+        "answer": "You have a receipt from TechWave Solutions dated 2023-10-27 totaling $4,044.60 USD.",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency FROM receipts r",
+        "ok": true
+      },
+      {
+        "q": "tell me about my transactions with TechWave",
+        "answer": "Your transactions with TechWave Solutions on 2023-10-27 totaled $4,044.60 USD, including a Laptop ($1,600), a Smartphone ($600), Wireless Headphones ($300), an External Hard Drive ($480), and a Tablet ($800).",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency, li.description, li.quantity, li.total_price, li.category FROM receipts r LEFT JOIN line_items li ON li.receipt_id = r.id WHERE r.merchant ILIKE '%TechWave%' ORDER BY r.receipt_date DESC",
+        "ok": true
+      },
+      {
+        "q": "how much have I paid in tax?",
+        "answer": "You've paid a total of $264.60 in tax.",
+        "sql": "SELECT COALESCE(SUM(tax), 0) AS total_tax FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "what was the most expensive item I bought?",
+        "answer": "The most expensive item you bought was a Laptop - Model X for $1,600.00.",
+        "sql": "SELECT description, quantity, unit_price, total_price FROM line_items ORDER BY total_price DESC NULLS LAST LIMIT 1",
+        "ok": true
+      },
+      {
+        "q": "did I buy any laptops?",
+        "answer": "You haven't bought any laptops yet.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'other' AS category FROM line_items WHERE category = 'other' AND (description ILIKE '%laptop%' OR description ILIKE '%notebook%')",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in October 2023?",
+        "answer": "You spent $4,044.60 in October 2023.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent FROM receipts WHERE receipt_date >= '2023-10-01' AND receipt_date < '2023-11-01'",
+        "ok": true
+      },
+      {
+        "q": "what was my biggest grocery bill last month?",
+        "answer": "You haven't uploaded any grocery receipts for the last month.",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total FROM receipts r WHERE r.id IN (SELECT receipt_id FROM line_items WHERE category = 'groceries') AND r.receipt_date >= date_trunc('month', current_date - interval '1 month') AND r.receipt_date < current_date ORDER BY r.total DESC NULLS LAST LIMIT 1",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on coffee this year?",
+        "answer": "You haven't spent anything on coffee this year.",
+        "sql": "SELECT COALESCE(SUM(li.total_price), 0) AS total_spent FROM line_items li JOIN receipts r ON r.id = li.receipt_id WHERE (li.description ILIKE '%coffee%' OR li.description ILIKE '%latte%' OR li.description ILIKE '%espresso%' OR li.description ILIKE '%cappuccino%') AND r.receipt_date >= date_trunc('year', CURRENT_DATE)",
+        "ok": true
+      },
+      {
+        "q": "what's the weather today?",
+        "answer": "The query returned an error: \"unanswerable\". Today's weather information is unavailable.",
+        "sql": "SELECT 'unanswerable' AS error",
+        "ok": true
+      }
+    ]
+  }
+}
+
+command update: 
+{
+  "extraction": {
+    "total_receipts": 1,
+    "per_field_accuracy": {
+      "merchant": 1.0,
+      "date": 1.0,
+      "total": 1.0,
+      "currency": 1.0
+    },
+    "item_precision_avg": 1.0,
+    "item_recall_avg": 1.0,
+    "failures": []
+  },
+  "queries": {
+    "total_queries": 20,
+    "passed": 17,
+    "pass_rate": 0.85,
+    "details": [
+      {
+        "q": "how many receipts do I have?",
+        "answer": "You have 1 receipt.",
+        "sql": "SELECT COUNT(*) AS receipt_count FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in total?",
+        "answer": "You've spent a total of $4,044.60.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent FROM receipts",
+        "ok": false
+      },
+      {
+        "q": "how much did I spend at TechWave Solutions?",
+        "answer": "You haven't spent anything at TechWave Solutions.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent FROM line_items WHERE category = 'dining' AND receipt_id IN (SELECT id FROM receipts WHERE merchant ILIKE '%TechWave%')",
+        "ok": false
+      },
+      {
+        "q": "what's my biggest receipt?",
+        "answer": "The generated query failed against the database (ProgrammingError).",
+        "sql": "SELECT receipt_id, merchant, receipt_date, total, currency FROM receipts ORDER BY total DESC NULLS LAST LIMIT 1",
+        "ok": false
+      },
+      {
+        "q": "show me my top merchants by spend",
+        "answer": "Your top merchant is TechWave Solutions with $4,044.60 spent.",
+        "sql": "SELECT merchant, SUM(total) AS spent FROM receipts WHERE merchant IS NOT NULL GROUP BY merchant ORDER BY spent DESC NULLS LAST",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on shopping?",
+        "answer": "You spent $3,480.00 on shopping.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent FROM line_items WHERE category ='shopping'",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on entertainment?",
+        "answer": "You spent $300.00 on entertainment.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'entertainment' AS category FROM line_items WHERE category = 'entertainment'",
+        "ok": true
+      },
+      {
+        "q": "how many items did I buy in total?",
+        "answer": "You bought a total of 12 items.",
+        "sql": "SELECT COALESCE(SUM(quantity), 0) AS total_items FROM line_items",
+        "ok": true
+      },
+      {
+        "q": "what's my average receipt total?",
+        "answer": "Your average receipt total is $4,044.60.",
+        "sql": "SELECT AVG(total) AS avg_total FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "what currencies are my receipts in?",
+        "answer": "You have receipts in USD.",
+        "sql": "SELECT DISTINCT currency FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in 2023?",
+        "answer": "You spent $4,044.60 in 2023.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent FROM receipts WHERE receipt_date >= DATE '2023-01-01' AND receipt_date < DATE '2024-01-01' GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "list all my receipts",
+        "answer": "You have a receipt from TechWave Solutions dated 2023-10-27 totaling $4,044.60 USD.",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency FROM receipts r",
+        "ok": true
+      },
+      {
+        "q": "tell me about my transactions with TechWave",
+        "answer": "Your transactions with TechWave Solutions on 2023-10-27 totaled $4,044.60 USD, including a Laptop ($1,600), a Smartphone ($600), Wireless Headphones ($300), an External Hard Drive ($480), and a Tablet ($800).",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency, li.description, li.quantity, li.total_price, li.category FROM receipts r LEFT JOIN line_items li ON li.receipt_id = r.id WHERE r.merchant ILIKE '%TechWave%' ORDER BY r.receipt_date DESC",
+        "ok": true
+      },
+      {
+        "q": "how much have I paid in tax?",
+        "answer": "You've paid a total of $264.60 in tax.",
+        "sql": "SELECT COALESCE(SUM(tax), 0) AS total_tax FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "what was the most expensive item I bought?",
+        "answer": "The most expensive item you bought was a Laptop - Model X for $1,600.00.",
+        "sql": "SELECT description, quantity, unit_price, total_price FROM line_items ORDER BY total_price DESC NULLS LAST LIMIT 1",
+        "ok": true
+      },
+      {
+        "q": "did I buy any laptops?",
+        "answer": "You haven't bought any laptops yet.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'other' AS category FROM line_items WHERE category = 'other' AND (description ILIKE '%laptop%' OR description ILIKE '%notebook%')",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in October 2023?",
+        "answer": "You spent $4,044.60 in October 2023.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent FROM receipts WHERE receipt_date >= '2023-10-01' AND receipt_date < '2023-11-01'",
+        "ok": true
+      },
+      {
+        "q": "what was my biggest grocery bill last month?",
+        "answer": "You haven't uploaded any grocery receipts for the last month.",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total FROM receipts r WHERE r.id IN (SELECT receipt_id FROM line_items WHERE category = 'groceries') AND r.receipt_date >= date_trunc('month', current_date - interval '1 month') AND r.receipt_date < current_date ORDER BY r.total DESC NULLS LAST LIMIT 1",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on coffee this year?",
+        "answer": "You haven't spent anything on coffee this year.",
+        "sql": "SELECT COALESCE(SUM(li.total_price), 0) AS total_spent FROM line_items li JOIN receipts r ON r.id = li.receipt_id WHERE (li.description ILIKE '%coffee%' OR li.description ILIKE '%latte%' OR li.description ILIKE '%espresso%' OR li.description ILIKE '%cappuccino%') AND r.receipt_date >= date_trunc('year', CURRENT_DATE)",
+        "ok": true
+      },
+      {
+        "q": "what's the weather today?",
+        "answer": "The query returned an error: \"unanswerable\". Today's weather information is unavailable.",
+        "sql": "SELECT 'unanswerable' AS error",
+        "ok": true
+      }
+    ]
+  }
+}
+
+command update:
+{
+  "extraction": {
+    "total_receipts": 1,
+    "per_field_accuracy": {
+      "merchant": 1.0,
+      "date": 1.0,
+      "total": 1.0,
+      "currency": 1.0
+    },
+    "item_precision_avg": 1.0,
+    "item_recall_avg": 1.0,
+    "failures": []
+  },
+  "queries": {
+    "total_queries": 20,
+    "passed": 20,
+    "pass_rate": 1.0,
+    "details": [
+      {
+        "q": "how many receipts do I have?",
+        "answer": "You have 1 receipt.",
+        "sql": "SELECT COUNT(*) AS receipt_count FROM receipts",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in total?",
+        "answer": "You've spent a total of $4,044.60 USD.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent, currency FROM receipts GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend at TechWave Solutions?",
+        "answer": "You spent $4,044.60 USD at TechWave Solutions. This was one receipt.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS receipt_count, currency FROM receipts WHERE merchant ILIKE '%TechWave Solutions%' GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "what's my biggest receipt?",
+        "answer": "Your biggest receipt was from TechWave Solutions on 2023-10-27 for $4,044.60 USD.",
+        "sql": "SELECT id, merchant, receipt_date, total, currency FROM receipts ORDER BY total DESC NULLS LAST LIMIT 1",
+        "ok": true
+      },
+      {
+        "q": "show me my top merchants by spend",
+        "answer": "Your top merchant is TechWave Solutions with $4,044.60 spent.",
+        "sql": "SELECT merchant, SUM(total) AS spent FROM receipts GROUP BY merchant ORDER BY spent DESC NULLS LAST LIMIT 5",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on shopping?",
+        "answer": "You spent $3,480.00 on shopping.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent,'shopping' AS category FROM line_items WHERE category ='shopping'",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on entertainment?",
+        "answer": "You spent $300.00 on entertainment.",
+        "sql": "SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'entertainment' AS category FROM line_items WHERE category = 'entertainment'",
+        "ok": true
+      },
+      {
+        "q": "how many items did I buy in total?",
+        "answer": "You bought a total of 12 items.",
+        "sql": "SELECT COALESCE(SUM(quantity), 0) AS total_items FROM line_items",
+        "ok": true
+      },
+      {
+        "q": "what's my average receipt total?",
+        "answer": "Your average receipt total is $4,044.60 USD.",
+        "sql": "SELECT AVG(total) AS avg_total FROM receipts GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "what currencies are my receipts in?",
+        "answer": "You have receipts in 1 currency: USD.",
+        "sql": "SELECT DISTINCT currency FROM receipts GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in 2023?",
+        "answer": "You spent $4,044.60 USD in 2023.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent, currency FROM receipts WHERE receipt_date >= DATE '2023-01-01' AND receipt_date < DATE '2024-01-01' GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "list all my receipts",
+        "answer": "You have a receipt from TechWave Solutions dated 2023-10-27 totaling $4,044.60 USD.",
+        "sql": "SELECT id, merchant, receipt_date, total, currency FROM receipts ORDER BY receipt_date DESC",
+        "ok": true
+      },
+      {
+        "q": "tell me about my transactions with TechWave",
+        "answer": "Your transaction with TechWave Solutions on 2023-10-27 totaled $4,044.60 USD. This includes a Laptop worth $1,600.",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency FROM receipts r WHERE r.merchant ILIKE '%TechWave%' ORDER BY r.receipt_date DESC",
+        "ok": true
+      },
+      {
+        "q": "how much have I paid in tax?",
+        "answer": "You've paid a total of $264.60 in tax.",
+        "sql": "SELECT COALESCE(SUM(tax), 0) AS total_tax FROM receipts GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "what was the most expensive item I bought?",
+        "answer": "The most expensive item you bought was a Laptop - Model X for $1,600.00.",
+        "sql": "SELECT description, quantity, unit_price, total_price FROM line_items ORDER BY total_price DESC NULLS LAST LIMIT 1",
+        "ok": true
+      },
+      {
+        "q": "did I buy any laptops?",
+        "answer": "You bought a laptop from TechWave Solutions on 2023-10-27 for $4,044.60 USD.",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total, r.currency FROM receipts r JOIN line_items li ON r.id = li.receipt_id WHERE li.description ILIKE '%laptop%' OR li.description ILIKE '%notebook%'",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend in October 2023?",
+        "answer": "You spent $4,044.60 USD in October 2023.",
+        "sql": "SELECT COALESCE(SUM(total), 0) AS total_spent FROM receipts WHERE receipt_date >= '2023-10-01' AND receipt_date < '2023-11-01' GROUP BY currency",
+        "ok": true
+      },
+      {
+        "q": "what was my biggest grocery bill last month?",
+        "answer": "You haven't uploaded any grocery receipts for the last month.",
+        "sql": "SELECT r.id, r.merchant, r.receipt_date, r.total FROM receipts r WHERE r.id IN (SELECT receipt_id FROM line_items WHERE category = 'groceries') AND r.receipt_date >= date_trunc('month', current_date - interval '1 month') AND r.receipt_date < current_date ORDER BY r.total DESC NULLS LAST LIMIT 1",
+        "ok": true
+      },
+      {
+        "q": "how much did I spend on coffee this year?",
+        "answer": "You haven't spent anything on coffee this year.",
+        "sql": "SELECT COALESCE(SUM(li.total_price), 0) AS total_spent FROM line_items li JOIN receipts r ON r.id = li.receipt_id WHERE (li.description ILIKE '%coffee%' OR li.description ILIKE '%latte%' OR li.description ILIKE '%espresso%' OR li.description ILIKE '%cappuccino%') AND r.receipt_date >= date_trunc('year', CURRENT_DATE) GROUP BY r.currency",
+        "ok": true
+      },
+      {
+        "q": "what's the weather today?",
+        "answer": "The query returned an error: \"unanswerable\". Today's weather information is unavailable.",
+        "sql": "SELECT 'unanswerable' AS error",
+        "ok": true
+      }
+    ]
+  }
+}
+
+
+for invalid file uploads: (wrong, we need to return an error instead of storing the doc)
+{
+    "receipts": [
+        {
+            "id": "97c27c5d-5129-4d82-a383-53b539d1646a",
+            "merchant": null,
+            "receipt_date": null,
+            "subtotal": null,
+            "tax": null,
+            "total": null,
+            "currency": null,
+            "confidence": 0.0,
+            "extraction_notes": "ok",
+            "created_at": "2026-05-26T06:18:02.088640Z",
+            "line_items": []
+        }
+    ],
+    "skipped_duplicates": [],
+    "failed": []
+}
+
+
+updated response and functionality to reject invalid files instead of storing them with null values:
+{
+    "receipts": [],
+    "skipped_duplicates": [],
+    "failed": [
+        {
+            "filename": "1777220536075-default_avatar_2131230874.png",
+            "error": "could not extract receipt data (confidence=0.00). image may not be a receipt or is unreadable."
+        }
+    ]
+}
+
+Tried adding amazon gift card image and got: 
+{
+    "receipts": [
+        {
+            "id": "40e6c9c1-0f7c-4ee1-a927-008712dc9150",
+            "merchant": "Amazon",
+            "receipt_date": null,
+            "subtotal": null,
+            "tax": null,
+            "total": null,
+            "currency": "USD",
+            "confidence": 0.27999999999999997,
+            "extraction_notes": "ok",
+            "created_at": "2026-05-26T06:47:39.984233Z",
+            "line_items": []
+        }
+    ],
+    "skipped_duplicates": [],
+    "failed": []
+}
+
+Solved using confidence threshold to 0.3 and made money or total money compulsory fields. Now the same image gives:
+{
+    "receipts": [],
+    "skipped_duplicates": [],
+    "failed": [
+        {
+            "filename": "1770747408665-1000032836.png",
+            "error": "image does not appear to be a receipt: no total or priced line items found; low confidence (0.28). extracted_merchant='Amazon', extracted_total=None"
+        }
+    ]
+}
