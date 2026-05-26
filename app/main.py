@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, UploadFile, Depends, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session, selectinload
 
@@ -26,8 +28,17 @@ from app.model_clients import VLMClient, SLMClient, FakeVLM, FakeSLM
 
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "./uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(title="Smart Receipt Tracker", version="0.1.0")
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 def get_vlm() -> VLMClient:
