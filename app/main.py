@@ -95,20 +95,30 @@ async def upload_receipts(
 
             extracted: ExtractedReceipt = result.receipt or ExtractedReceipt()
 
-            # Reject if the model couldn't extract anything meaningful — the image
-            # isn't a receipt, or it's too damaged to read.
-            nothing_extracted = (
-                extracted.merchant is None
-                and extracted.total is None
-                and not extracted.line_items
+            # Reject if the image clearly isn't a receipt.
+            # Rule: a receipt MUST have either a total amount OR at least one priced line item.
+            # A logo / business card / gift card image will extract a merchant name but no money.
+            has_money = (
+                extracted.total is not None
+                or extracted.subtotal is not None
+                or any(
+                    (li.total_price is not None or li.unit_price is not None)
+                    for li in extracted.line_items
+                )
             )
-            if result.confidence < 0.2 or nothing_extracted:
+            if result.confidence < 0.4 or not has_money:
+                reasons = []
+                if not has_money:
+                    reasons.append("no total or priced line items found")
+                if result.confidence < 0.4:
+                    reasons.append(f"low confidence ({result.confidence:.2f})")
                 image_path.unlink(missing_ok=True)
                 failed.append({
                     "filename": upload.filename,
                     "error": (
-                        f"could not extract receipt data (confidence={result.confidence:.2f}). "
-                        f"image may not be a receipt or is unreadable."
+                        f"image does not appear to be a receipt: {'; '.join(reasons)}. "
+                        f"extracted_merchant={extracted.merchant!r}, "
+                        f"extracted_total={extracted.total!r}"
                     ),
                 })
                 continue
