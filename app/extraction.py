@@ -1,17 +1,9 @@
-"""Vision-language extraction with a validation + repair loop.
-
-Pipeline:
-    image bytes  -> preprocess  -> VLM call  -> JSON parse
-                                    ^               |
-                                    |               v
-                                    +-- repair --- validate (math, types)
-"""
 from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
 from datetime import date as date_cls
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from pathlib import Path
 from PIL import Image
 from pydantic import ValidationError
@@ -23,7 +15,7 @@ PROMPTS_DIR = Path(__file__).parent / "prompts"
 EXTRACT_PROMPT = (PROMPTS_DIR / "extract.txt").read_text(encoding="utf-8")
 
 MAX_REPAIR_ATTEMPTS = 2
-SUM_TOLERANCE = Decimal("0.05")  # 5% tolerance for sum-of-items vs subtotal
+SUM_TOLERANCE = Decimal("0.05")  # receipts round per-line; 5% absorbs the noise
 
 
 @dataclass
@@ -35,7 +27,6 @@ class ExtractionResult:
 
 
 def extract_receipt(image: Image.Image, vlm: VLMClient) -> ExtractionResult:
-    """Run the VLM and return a validated receipt (or as much as we could salvage)."""
     notes: list[str] = []
     raw = vlm.extract(image, EXTRACT_PROMPT)
     parsed, parse_err = _try_parse(raw)
@@ -80,7 +71,6 @@ def _try_parse(raw: str) -> tuple[ExtractedReceipt | None, str | None]:
 
 
 def _validate(r: ExtractedReceipt) -> str | None:
-    """Return None if everything passes, otherwise an error description."""
     if r.currency and len(r.currency) != 3:
         return f"currency must be a 3-letter ISO code, got '{r.currency}'"
 
@@ -104,17 +94,7 @@ def _validate(r: ExtractedReceipt) -> str | None:
 
 
 def _score(r: ExtractedReceipt) -> float:
-    """Cheap confidence proxy: fraction of expected fields present."""
     fields = [r.merchant, r.date, r.subtotal, r.total, r.currency]
     present = sum(1 for f in fields if f is not None)
     item_score = 0.5 if r.line_items else 0.0
     return min(1.0, (present / len(fields)) * 0.7 + item_score * 0.3)
-
-
-def safe_decimal(x) -> Decimal | None:
-    if x is None:
-        return None
-    try:
-        return Decimal(str(x))
-    except (InvalidOperation, ValueError):
-        return None

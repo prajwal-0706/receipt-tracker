@@ -1,10 +1,3 @@
-"""FastAPI app. Endpoints:
-  POST   /receipts        upload 1+ images, returns extracted+stored receipts
-  GET    /receipts/{id}   fetch one receipt by id
-  GET    /receipts        list/filter receipts (by date range, category, merchant)
-  POST   /query           natural-language spending question
-  GET    /healthz         liveness
-"""
 from __future__ import annotations
 import hashlib
 import os
@@ -95,9 +88,6 @@ async def upload_receipts(
 
             extracted: ExtractedReceipt = result.receipt or ExtractedReceipt()
 
-            # Reject if the image clearly isn't a receipt.
-            # Rule: a receipt MUST have either a total amount OR at least one priced line item.
-            # A logo / business card / gift card image will extract a merchant name but no money.
             has_money = (
                 extracted.total is not None
                 or extracted.subtotal is not None

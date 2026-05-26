@@ -1,9 +1,4 @@
-"""Adapters around the VLM and SLM.
-
-We define a Protocol so the rest of the app depends on an interface, not on
-transformers/torch. Production wires in ``HFPipelineVLM`` / ``HFPipelineSLM``
-inside Colab; tests wire in ``FakeVLM`` / ``FakeSLM``.
-"""
+"""Protocol + adapters so the app depends on an interface, not on torch."""
 from __future__ import annotations
 from typing import Any, Protocol
 from PIL import Image
@@ -16,10 +11,6 @@ class VLMClient(Protocol):
 class SLMClient(Protocol):
     def generate(self, prompt: str, max_tokens: int = 512, temperature: float = 0.0) -> str: ...
 
-
-# ---------------------------------------------------------------------------
-# Fakes — used for local development without a GPU and for unit tests.
-# ---------------------------------------------------------------------------
 
 _FAKE_RECEIPT_JSON = """{
   "merchant": "Test Merchant",
@@ -52,10 +43,6 @@ class FakeSLM:
         return ""
 
 
-# ---------------------------------------------------------------------------
-# Real HF pipeline adapters — wired up inside the Colab notebook.
-# ---------------------------------------------------------------------------
-
 def _free_gpu():
     try:
         import torch, gc
@@ -67,13 +54,11 @@ def _free_gpu():
 
 
 class HFPipelineVLM:
-    """Wraps a transformers `pipeline('image-text-to-text', ...)` instance."""
-
     def __init__(self, pipe: Any, max_new_tokens: int = 768):
         self.pipe = pipe
         self.max_new_tokens = max_new_tokens
-        # Cap vision tokens so we don't OOM on Colab T4.
-        # Qwen processor uses (H*W)/(28*28) tokens for image patches.
+        # Qwen2.5-VL counts vision tokens as (H*W)/(28*28). Cap so a 4K receipt
+        # doesn't blow VRAM on a constrained GPU (Colab T4, V100 16GB).
         proc = getattr(pipe, "image_processor", None) or getattr(pipe, "processor", None)
         if proc is not None:
             for attr in ("min_pixels", "max_pixels"):
@@ -103,8 +88,6 @@ class HFPipelineVLM:
 
 
 class HFPipelineSLM:
-    """Wraps a transformers `pipeline('text-generation', ...)` instance."""
-
     def __init__(self, pipe: Any):
         self.pipe = pipe
 
@@ -121,10 +104,8 @@ class HFPipelineSLM:
 
 
 def _extract_assistant_text(pipeline_output: Any) -> str:
-    """Pull the assistant turn's text out of a transformers chat pipeline result.
-
-    Handles both list-of-message and string formats across transformers versions.
-    """
+    # transformers' chat pipelines have returned several different shapes across
+    # 4.45+ — list of messages, string, list of content parts. Handle them all.
     if not pipeline_output:
         return ""
     first = pipeline_output[0]

@@ -1,8 +1,3 @@
-"""Two-stage categorization: keyword rules first, SLM fallback for the rest.
-
-Rules cover the common case cheaply and deterministically (~60-70% of items).
-The SLM is only invoked for items the rules can't classify.
-"""
 from __future__ import annotations
 import re
 from dataclasses import dataclass

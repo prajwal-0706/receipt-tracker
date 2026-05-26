@@ -1,12 +1,8 @@
 #!/usr/bin/env python
-"""Alternative runner using bitsandbytes 4-bit quantization instead of AWQ.
+"""bitsandbytes 4-bit runner — use on V100/Volta where AWQ Triton kernels fail.
 
-Use this when AWQ kernels fail (e.g. on V100 / Volta where the cuBLAS fallback path
-has linking issues). bnb's 4-bit kernels are battle-tested across all GPU generations.
-
-Trade-off: downloads the full FP16 weights (~15GB per model) and quantizes on load,
-vs AWQ which downloads the already-quantized 5GB weights. First boot is slower; the
-quantized weights stay in GPU memory after, so inference cost is comparable.
+Loads models manually (not via pipeline's model_kwargs) to dodge a transformers/bnb
+config-merge bug that raises `BitsAndBytesConfig has no attribute get_loading_attributes`.
 """
 import os
 import sys
@@ -19,19 +15,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import torch
-from transformers import pipeline, BitsAndBytesConfig
+from transformers import (
+    pipeline, BitsAndBytesConfig,
+    AutoModelForCausalLM, AutoTokenizer,
+    AutoModelForImageTextToText, AutoProcessor,
+)
 import uvicorn
 
-# Defaults to NON-AWQ variants (bnb quantizes the FP16 weights on load)
 VLM_MODEL = os.environ.get('VLM_MODEL', 'Qwen/Qwen2.5-VL-7B-Instruct')
 SLM_MODEL = os.environ.get('SLM_MODEL', 'Qwen/Qwen2.5-3B-Instruct')
 HOST = os.environ.get('HOST', '0.0.0.0')
 PORT = int(os.environ.get('PORT', '8000'))
 
-print(f'[runner] DATABASE_URL set: {bool(os.environ.get("DATABASE_URL"))}')
-print(f'[runner] CUDA available: {torch.cuda.is_available()}')
+print(f'[runner] CUDA: {torch.cuda.is_available()}')
 if torch.cuda.is_available():
-    print(f'[runner] GPU: {torch.cuda.get_device_name(0)} ({torch.cuda.get_device_properties(0).total_memory // 1024**3} GB)')
+    print(f'[runner] GPU: {torch.cuda.get_device_name(0)}')
 
 bnb = BitsAndBytesConfig(
     load_in_4bit=True,
@@ -41,25 +39,23 @@ bnb = BitsAndBytesConfig(
 )
 
 print(f'[runner] Loading VLM (bnb 4-bit): {VLM_MODEL}')
-vlm_pipe = pipeline(
-    'image-text-to-text',
-    model=VLM_MODEL,
-    model_kwargs={'quantization_config': bnb, 'device_map': 'auto'},
+vlm_model = AutoModelForImageTextToText.from_pretrained(
+    VLM_MODEL, quantization_config=bnb, device_map='auto', torch_dtype=torch.float16,
 )
+vlm_processor = AutoProcessor.from_pretrained(VLM_MODEL)
+vlm_pipe = pipeline('image-text-to-text', model=vlm_model, processor=vlm_processor)
 
-proc = vlm_pipe.processor
-img_proc = getattr(proc, 'image_processor', proc)
+img_proc = getattr(vlm_processor, 'image_processor', vlm_processor)
 if hasattr(img_proc, 'max_pixels'):
     img_proc.min_pixels = 256 * 28 * 28
     img_proc.max_pixels = 1024 * 28 * 28
-print(f'[runner] VLM processor pixel cap: {getattr(img_proc, "max_pixels", "n/a")}')
 
 print(f'[runner] Loading SLM (bnb 4-bit): {SLM_MODEL}')
-slm_pipe = pipeline(
-    'text-generation',
-    model=SLM_MODEL,
-    model_kwargs={'quantization_config': bnb, 'device_map': 'auto'},
+slm_model = AutoModelForCausalLM.from_pretrained(
+    SLM_MODEL, quantization_config=bnb, device_map='auto', torch_dtype=torch.float16,
 )
+slm_tokenizer = AutoTokenizer.from_pretrained(SLM_MODEL)
+slm_pipe = pipeline('text-generation', model=slm_model, tokenizer=slm_tokenizer)
 
 os.environ.setdefault('VLM_BACKEND', 'hf_pipeline')
 os.environ.setdefault('SLM_BACKEND', 'hf_pipeline')
@@ -71,8 +67,7 @@ app.state.vlm = HFPipelineVLM(vlm_pipe, max_new_tokens=1024)
 app.state.slm = HFPipelineSLM(slm_pipe)
 
 if torch.cuda.is_available():
-    used = torch.cuda.memory_allocated() // 1024**2
-    print(f'[runner] VRAM used after model load: {used} MiB')
+    print(f'[runner] VRAM used: {torch.cuda.memory_allocated() // 1024**2} MiB')
 
 print(f'[runner] Starting FastAPI on {HOST}:{PORT}')
 uvicorn.run(app, host=HOST, port=PORT, log_level='info')

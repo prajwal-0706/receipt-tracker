@@ -1,10 +1,5 @@
 #!/usr/bin/env python
-"""Standalone runner for EC2 / any GPU host with >=20GB VRAM.
-
-Loads both AWQ models, wires them into the FastAPI app, starts uvicorn on
-0.0.0.0:8000. No notebook, no ngrok required (open the port in your security
-group). Designed to be run as `python scripts/run_server.py` from the repo root.
-"""
+"""AWQ runner for GPUs >=20GB VRAM (L4, A10G, A100). Use run_server_bnb.py on V100/Volta."""
 import os
 import sys
 from pathlib import Path

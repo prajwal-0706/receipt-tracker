@@ -1,36 +1,23 @@
-"""Image preprocessing to give the VLM the cleanest possible input.
-
-Receipts photographed at angles or in low light lose 10-20% extraction accuracy.
-We deskew, crop to the receipt boundary, boost contrast, and downsize to a
-sane resolution before sending to the model.
-"""
 from __future__ import annotations
 import io
 import cv2
 import numpy as np
 from PIL import Image
 
-MAX_LONG_EDGE = 1280  # A10G (24GB) comfortably handles this; drop to 896 on T4-class GPUs
+MAX_LONG_EDGE = 1280  # tuned for A10G/V100; drop to 896 on T4-class GPUs
 
 
 def preprocess_for_vlm(image_bytes: bytes) -> Image.Image:
-    """Best-effort cleanup: returns a PIL image ready for the VLM.
-
-    PIL handles every common format (JPG/PNG/WEBP/GIF/BMP) reliably across
-    platforms; OpenCV builds often miss libwebp. We always load via PIL, then
-    convert to numpy for OpenCV cleanup, then back to PIL.
-    """
+    # Load via PIL (handles webp/gif reliably; some OpenCV builds don't ship libwebp),
+    # then convert to numpy for the OpenCV cleanup, then back to PIL.
     pil = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    pil = _resize_pil(pil, MAX_LONG_EDGE)  # always resize first to bound memory
-
+    pil = _resize_pil(pil, MAX_LONG_EDGE)
     try:
         bgr = cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
         bgr = _deskew(bgr)
         bgr = _boost_contrast(bgr)
-        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        return Image.fromarray(rgb)
+        return Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
     except Exception:
-        # If OpenCV trips on anything, the resized PIL image is still good enough.
         return pil
 
 
@@ -70,12 +57,3 @@ def _boost_contrast(bgr: np.ndarray) -> np.ndarray:
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     l = clahe.apply(l)
     return cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2BGR)
-
-
-def _resize_keeping_aspect(bgr: np.ndarray, max_edge: int) -> np.ndarray:
-    h, w = bgr.shape[:2]
-    longest = max(h, w)
-    if longest <= max_edge:
-        return bgr
-    scale = max_edge / longest
-    return cv2.resize(bgr, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)

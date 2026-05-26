@@ -12,7 +12,6 @@ class LineItemIn(BaseModel):
 
 
 class ExtractedReceipt(BaseModel):
-    """Raw output of the VLM extraction step (before categorization/persistence)."""
     merchant: str | None = None
     date: date_type | None = None
     line_items: list[LineItemIn] = Field(default_factory=list)

@@ -1,11 +1,3 @@
-"""Natural-language question -> safe SQL -> grounded answer.
-
-Guardrails:
-  1. SQL is generated with the schema + few-shots in the prompt.
-  2. sqlglot parses the SQL and rejects anything that isn't a single SELECT.
-  3. The query runs against a read-only session.
-  4. The SLM summarizes the rows back into a sentence (so users don't see raw SQL).
-"""
 from __future__ import annotations
 import re
 from dataclasses import dataclass
@@ -54,15 +46,12 @@ def answer_question(question: str, db: Session, slm: SLMClient) -> QueryResult:
 
 
 def _strip_code_fences(sql: str) -> str:
-    """Normalize a raw SLM SQL response: drop "SQL:" labels, ``` fences, language tags, trailing semicolons."""
+    # Models echo bits of the prompt back: "SQL:" labels, ``` fences with or without
+    # a language tag. None of that should reach sqlglot.
     sql = sql.strip()
-    # Drop "SQL:" prefix if the model echoed the prompt label
     sql = re.sub(r"^\s*SQL\s*:\s*", "", sql, flags=re.IGNORECASE)
-    # Strip ALL leading/trailing backticks (handles ```, ````sql, or weird counts)
     sql = sql.strip("`").strip()
-    # If a language tag survived (e.g. "sql\nSELECT ..."), drop it
     sql = re.sub(r"^(sql|postgres(?:ql)?)\s*\n", "", sql, flags=re.IGNORECASE)
-    # Final cleanup
     return sql.strip().rstrip(";").strip()
 
 

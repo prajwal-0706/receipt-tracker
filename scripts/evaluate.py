@@ -1,16 +1,7 @@
-"""Evaluation harness.
+"""Evaluation harness — hits a running API and scores extraction + query accuracy.
 
-Two suites:
-  --suite extraction   per-field accuracy across labelled sample receipts
-  --suite queries      pass/fail on the provided NL queries
-  --suite all          both, with summary
-
-Expects:
-  samples/labels.json  list of {"image": "path", "expected": {merchant, date, total, currency, items: [...]}}
-  samples/queries.json list of {"q": "...", "expected_answer": "...", "expected_contains": [...]}
-
-Hits a running API at --api (default http://localhost:8080) so it tests the
-whole pipeline including the model.
+Suites:  --suite extraction | queries | all
+Inputs:  samples/labels.json, samples/queries.json (see samples/README.md for shape)
 """
 from __future__ import annotations
 import argparse
@@ -73,15 +64,12 @@ def eval_extraction(api_url: str, labels_path: Path) -> dict:
 
 
 def _eq(api_val, expected_val) -> bool:
-    """Field-aware equality: numeric tolerance, case-insensitive strings."""
     if api_val is None or expected_val is None:
         return api_val == expected_val
-    # Try numeric comparison
     try:
         return abs(float(api_val) - float(expected_val)) < 0.01
     except (TypeError, ValueError):
-        pass
-    return str(api_val).strip().lower() == str(expected_val).strip().lower()
+        return str(api_val).strip().lower() == str(expected_val).strip().lower()
 
 
 def eval_queries(api_url: str, queries_path: Path) -> dict:
@@ -99,15 +87,12 @@ def eval_queries(api_url: str, queries_path: Path) -> dict:
         body = resp.json()
         answer = body.get("answer", "")
         sql = body.get("sql", "")
-        # Normalize: strip commas/spaces from numbers in the answer so "$4,044.60" matches needle "4044"
+        # Strip commas so "$4,044.60" matches needle "4044".
         normalized = answer.lower().replace(",", "")
         needles = q.get("expected_contains", [])
-        # Match mode: "any" passes if ANY needle present; default "all" requires all needles
-        mode = q.get("match", "all")
-        if mode == "any":
-            ok = any(str(n).lower() in normalized for n in needles)
-        else:
-            ok = all(str(n).lower() in normalized for n in needles)
+        match_any = q.get("match") == "any"
+        check = any if match_any else all
+        ok = check(str(n).lower() in normalized for n in needles)
         if ok:
             passed += 1
         details.append({"q": q["q"], "answer": answer, "sql": sql, "ok": ok})
