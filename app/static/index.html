@@ -287,6 +287,17 @@
             </div>
           </summary>
           <div class="px-4 pb-4 pt-0 border-t border-slate-100">
+            <div class="py-3">
+              <a href="/receipts/${r.id}/image" target="_blank" rel="noopener"
+                 class="block bg-slate-50 rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-300 transition">
+                <img src="/receipts/${r.id}/image"
+                     alt="Receipt image for ${escapeHtml(r.merchant || "receipt")}"
+                     loading="lazy"
+                     class="w-full max-h-64 object-contain bg-white"
+                     onerror="this.parentElement.innerHTML='<div class=\\'text-xs text-slate-400 text-center py-6\\'>Original image no longer on disk.</div>'"/>
+              </a>
+              <div class="text-xs text-slate-400 mt-1 text-center">Click image to open full size</div>
+            </div>
             ${itemsHtml || '<div class="text-sm text-slate-400 py-2">No line items extracted.</div>'}
             <div class="flex items-center justify-between text-sm pt-2 mt-2 border-t border-slate-200">
               <span class="text-slate-500">Subtotal · Tax</span>

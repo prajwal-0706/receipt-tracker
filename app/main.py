@@ -177,6 +177,23 @@ def get_receipt(
     return receipt
 
 
+@app.get("/receipts/{receipt_id}/image")
+def get_receipt_image(
+    receipt_id: uuid.UUID,
+    db: Annotated[Session, Depends(get_session)],
+):
+    receipt = db.scalar(select(Receipt).where(Receipt.id == receipt_id))
+    if not receipt or not receipt.image_path:
+        raise HTTPException(404, "image not found")
+    path = Path(receipt.image_path)
+    if not path.exists() or not path.is_file():
+        raise HTTPException(404, "image file is missing on disk")
+    # Defense against path traversal — the stored path must be inside UPLOAD_DIR.
+    if UPLOAD_DIR.resolve() not in path.resolve().parents:
+        raise HTTPException(404, "image not found")
+    return FileResponse(path)
+
+
 @app.get("/receipts", response_model=list[ReceiptOut])
 def list_receipts(
     db: Annotated[Session, Depends(get_session)],
