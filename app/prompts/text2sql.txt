@@ -43,6 +43,7 @@ Rules:
   - When summing receipt totals, ALWAYS include `currency` in the SELECT and GROUP BY so the answer can mention the currency.
   - "How much did I spend at <merchant>" sums `receipts.total` filtered by merchant ILIKE — DO NOT add a category filter, do not query line_items, do not assume a category.
   - "Biggest/largest receipt" or "biggest bill" sums on `receipts.total`, selects `id`, `merchant`, `receipt_date`, `total`, `currency` — never `receipt_id` (that column does not exist on receipts).
+  - The `category` column exists ONLY on `line_items`. It does NOT exist on `receipts`. For ANY question about spending in a category ("what did I spend on dining", "how much on groceries", etc.), the query MUST be `FROM line_items WHERE category = '...'` and sum `total_price` — never `FROM receipts WHERE category = '...'` (that will error).
   - If the question is unanswerable from this schema, return: SELECT 'unanswerable' AS error
 
 Examples:
@@ -88,6 +89,15 @@ SQL: SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'shopping' AS category
 
 Q: How much did I spend on entertainment?
 SQL: SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'entertainment' AS category FROM line_items WHERE category = 'entertainment'
+
+Q: What did I spend on dining?
+SQL: SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'dining' AS category FROM line_items WHERE category = 'dining'
+
+Q: What did I spend on groceries?
+SQL: SELECT COALESCE(SUM(total_price), 0) AS total_spent, 'groceries' AS category FROM line_items WHERE category = 'groceries'
+
+Q: Show my spending by category
+SQL: SELECT category, COALESCE(SUM(total_price), 0) AS total_spent FROM line_items GROUP BY category ORDER BY total_spent DESC
 
 Q: How many items did I buy in total?
 SQL: SELECT COALESCE(SUM(quantity), 0) AS total_items FROM line_items
